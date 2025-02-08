@@ -1,82 +1,102 @@
+/**
+ * slist.h - An elegant singly linked list implementation
+ * Following the "good taste" coding philosophy of handling
+ * edge cases elegantly through careful pointer manipulation.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 
-// Node structure for a singly linked list
-typedef struct Node {
+struct list_node {
+    struct list_node *next;
     int data;
-    struct Node *next;
-} Node;
+};
 
-// Global head of the list
-Node *head = NULL;
+struct list_head {
+    struct list_node *head;
+};
 
-/**
- * remove_list_entry - Remove a given entry from the global list using an indirect pointer
- * @entry: Pointer to the Node we want to remove.
+/* Initialize a new empty list */
+static inline void list_init(struct list_head *list)
+{
+    list->head = NULL;
+}
+
+/* 
+ * Insert a new entry - notice how we handle both empty and non-empty
+ * list cases uniformly through indirect pointer manipulation
  */
-void remove_list_entry(Node *entry) {
-    Node **indirect = &head;
+static inline void list_add(struct list_head *list, struct list_node *new_node)
+{
+    struct list_node **indirect = &list->head;
     
+    new_node->next = *indirect;
+    *indirect = new_node;
+}
+
+/*
+ * Remove an entry from the list.
+ * The elegant part here is using the indirect pointer technique to
+ * handle both head and non-head cases uniformly without special cases.
+ */
+static inline void list_remove(struct list_head *list, struct list_node *entry)
+{
+    struct list_node **indirect = &list->head;
+
     while (*indirect != entry)
-        indirect = &((*indirect)->next);
+        indirect = &(*indirect)->next;
     
     *indirect = entry->next;
 }
 
-/**
- * print_list - Prints out the entire list
- */
-void print_list(void) {
-    Node *current = head;
-    printf("List contents: ");
-    while (current != NULL) {
-        printf("%d ", current->data);
-        current = current->next;
-    }
+/* Create a new list node with given data */
+static inline struct list_node *create_node(int data)
+{
+    struct list_node *node = malloc(sizeof(*node));
+    if (!node)
+        return NULL;
+        
+    node->data = data;
+    node->next = NULL;
+    return node;
+}
+
+/* Example usage */
+int main(void)
+{
+    struct list_head list;
+    list_init(&list);
+
+    /* Add some nodes */
+    struct list_node *node1 = create_node(10);
+    struct list_node *node2 = create_node(20);
+    struct list_node *node3 = create_node(30);
+
+    list_add(&list, node1);
+    list_add(&list, node2);
+    list_add(&list, node3);
+
+    /* Print the list */
+    printf("Initial list:\n");
+    for (struct list_node *node = list.head; node; node = node->next)
+        printf("%d ", node->data);
     printf("\n");
-}
 
-/**
- * create_node - Creates a new node with the given integer data
- */
-Node* create_node(int value) {
-    Node *new_node = malloc(sizeof(Node));
-    if (!new_node) {
-        perror("Failed to allocate memory for new node");
-        exit(EXIT_FAILURE);
+    /* Remove the middle node */
+    list_remove(&list, node2);
+    free(node2);
+
+    printf("After removing 20:\n");
+    for (struct list_node *node = list.head; node; node = node->next)
+        printf("%d ", node->data);
+    printf("\n");
+
+    /* Clean up */
+    while (list.head) {
+        struct list_node *node = list.head;
+        list_remove(&list, node);
+        free(node);
     }
-    new_node->data = value;
-    new_node->next = NULL;
-    return new_node;
-}
 
-int main(void) {
-    // Create a few nodes and link them into a list
-    Node *n1 = create_node(10);
-    Node *n2 = create_node(20);
-    Node *n3 = create_node(30);
-    
-    // Build the list: head -> n1 -> n2 -> n3 -> NULL
-    head = n1;
-    n1->next = n2;
-    n2->next = n3;
-    
-    // Print the list before removal
-    print_list();  // Expect: 10 20 30
-    
-    // Remove the middle node (n2)
-    printf("Removing node with data %d...\n", n2->data);
-    remove_list_entry(n2);
-    
-    // Print the list after removal
-    print_list();  // Expect: 10 30
-    
-    // Clean up allocated memory
-    remove_list_entry(n1);
-    remove_list_entry(n3);
-    free(n1);
-    free(n2);
-    free(n3);
-    
     return 0;
 }
